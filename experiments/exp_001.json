@@ -1,0 +1,8 @@
+{
+  "experiment_id": "exp_001",
+  "date": "2025-02-25",
+  "tracking_model": "ModelA",
+  "face_reid_model": "ModelX",
+  "public_score": 0.82,
+  "notes": "Baseline experiment with initial hyperparameters."
+}
