@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Tuple, Dict, Optional, List, Any
 from dataclasses import dataclass
 from kaggle.api.kaggle_api_extended import KaggleApi
-from config import ConfigManager
+from utils.configuration import ConfigManager
 
 # Configure logging
 logging.basicConfig(

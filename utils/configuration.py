@@ -9,7 +9,7 @@ class ConfigManager:
                  competition_name: str = "surveillance-for-retail-stores") -> None:
         """
         Initialize the ConfigManager.
-        
+
         Args:
             base_dir: Base directory for all operations
             competition_name: Name of the Kaggle competition
