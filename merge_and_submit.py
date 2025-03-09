@@ -1,61 +1,156 @@
-
-
-
-# this file must merge the latest submission with the latest submission of the submissions/face, submissions/track
-# it find the latest by looking at the timestamp of the submission file
-# the files named submission_{i}_*.csv
-
-# then merge the two files. using this logic:
-
-
+import os
+import re
 import pandas as pd
-tracking_data = pd.read_csv('tracking/submission_4_*.csv')
-tracking_data
-reid = pd.read_csv('reid/submission_5_*.csv')
-
-two files must be this columns 
-
-id	frame	objects	objective
+import json
+import time
+from kaggle.api.kaggle_api_extended import KaggleApi
 
 
-merged_df = pd.concat([tracking_data, reid], ignore_index=True)
-
-it must observe the last index of the submisions and increment it by 1
-
-merged_df
-sub_file = merged_df.drop(columns='id').reset_index()
-sub_file.rename(columns={'index': 'ID'}, inplace=True)
-
-submission_file['objects'] = submission_file['objects'].apply(
-    lambda x: ast.literal_eval(x))
-
-# Assert that the first object's data type is a list
-assert isinstance(submission_file['objects'].iloc[0],
-                  list), "The first 'objects' entry is not a list!"
-
-sub_file.to_csv('submissions/submission_{i}_.csv', index=False)
-
+def get_latest_submission(directory):
+    """Finds the latest submission file in the given directory based on the numeric index in the filename."""
+    pattern = re.compile(r'submission_(\d+)_.*\.csv')
+    max_i = -1
+    latest_file = None
+    for filename in os.listdir(directory):
+        match = pattern.match(filename)
+        if match:
+            i = int(match.group(1))
+            if i > max_i:
+                max_i = i
+                latest_file = filename
+    if latest_file is None:
+        raise FileNotFoundError(f"No submissions found in {directory}")
+    return max_i, os.path.join(directory, latest_file)
 
 
-# then it will submit the file into the competition using this name of competition:
+def get_next_submission_number(main_dir):
+    """Determines the next submission number for the main directory."""
+    pattern = re.compile(r'submission_(\d+)_.*\.csv')
+    max_i = -1
+    for filename in os.listdir(main_dir):
+        if os.path.isdir(os.path.join(main_dir, filename)):
+            continue  # Skip subdirectories
+        match = pattern.match(filename)
+        if match:
+            i = int(match.group(1))
+            if i > max_i:
+                max_i = i
+    return max_i + 1
 
-surveillance-for -retail-stores
+
+def get_latest_experiment_number(experiments_dir):
+    """Finds the latest experiment number in the experiments directory."""
+    pattern = re.compile(r'exp_(\d+)\.json')
+    max_num = 0
+    for filename in os.listdir(experiments_dir):
+        match = pattern.match(filename)
+        if match:
+            num = int(match.group(1))
+            if num > max_num:
+                max_num = num
+    return max_num
 
 
+def main():
+    # Authenticate Kaggle API
+    api = KaggleApi()
+    api.authenticate()
 
-then retrive the results from the competition and print the results
+    # Directories
+    track_dir = os.path.join('submissions', 'Track')
+    face_dir = os.path.join('submissions', 'Face')
+    main_dir = 'submissions'
+    experiments_dir = 'experiments'
 
-all via kaggle api, but you will want the kaggle.json
-you can find it in the root directory of the project ( same directory as this file) 
+    # Ensure directories exist
+    os.makedirs(main_dir, exist_ok=True)
+    os.makedirs(experiments_dir, exist_ok=True)
+
+    # Get latest track and face submissions
+    try:
+        track_i, track_path = get_latest_submission(track_dir)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return
+    try:
+        face_i, face_path = get_latest_submission(face_dir)
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        return
+
+    # Read and merge data
+    track_df = pd.read_csv(track_path)
+    face_df = pd.read_csv(face_path)
+    merged_df = pd.concat([track_df, face_df], ignore_index=True)
+
+    # Drop 'id' column if exists and reset index
+    if 'id' in merged_df.columns:
+        merged_df = merged_df.drop(columns='id')
+    merged_df = merged_df.reset_index().rename(columns={'index': 'ID'})
+
+    # Ensure required columns
+    required_columns = ['ID', 'frame', 'objects', 'objective']
+    if not all(col in merged_df.columns for col in required_columns):
+        print("Error: Merged DataFrame columns are incorrect.")
+        return
+
+    # Determine next submission number and save
+    next_i = get_next_submission_number(main_dir)
+    output_filename = f'submission_{next_i}_.csv'
+    output_path = os.path.join(main_dir, output_filename)
+    merged_df.to_csv(output_path, index=False)
+
+    # Submit to Kaggle
+    competition_name = 'surveillance-for-retail-stores'
+    message = f'Merged Track submission {track_i} and Face submission {face_i}'
+    try:
+        api.competition_submit(output_path, message, competition_name)
+        print(f"Submitted {output_path} to Kaggle.")
+    except Exception as e:
+        print(f"Error submitting to Kaggle: {e}")
+        return
+
+    # Retrieve public score
+    public_score = None
+    try:
+        # Wait for submission to process
+        time.sleep(60)  # Initial wait
+        max_attempts = 6
+        for _ in range(max_attempts):
+            submissions = api.competition_submissions(competition_name)
+            latest_sub = submissions[0]
+            if latest_sub.status == 'complete':
+                public_score = latest_sub.publicScore if hasattr(
+                    latest_sub, 'publicScore') else None
+                break
+            time.sleep(20)
+    except Exception as e:
+        print(f"Error retrieving submission score: {e}")
+
+    # Create experiment log
+    latest_exp_num = get_latest_experiment_number(experiments_dir)
+    new_exp_num = latest_exp_num + 1
+    exp_filename = f'exp_{new_exp_num:03d}.json'
+    exp_path = os.path.join(experiments_dir, exp_filename)
+
+    experiment_data = {
+        "submission": output_path,
+        "public_score": public_score,
+        "trackfile": track_path,
+        "facefile": face_path,
+    }
+
+    with open(exp_path, 'w') as f:
+        json.dump(experiment_data, f, indent=4)
+
+    print(f"Experiment log saved to {exp_path}")
+    if public_score is not None:
+        print(f"Public Score: {public_score}")
+    else:
+        print("Public score could not be retrieved.")
 
 
-then you will create expiremnets/experiment_{latest number}_public_score in experimnets directory.
+if __name__ == "__main__":
+    main()
 
-and store in it the following:
 
-{
-    "submission": "submissions/submission_{i}_.csv",
-    "public_score": 0.5
-    "trackfile": "submissions/Track/submission_{i}_.csv",
-    "facefile": "sumbissions/Face/submission_{i}_.csv",
-}
