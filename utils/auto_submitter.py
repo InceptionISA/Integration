@@ -295,42 +295,37 @@ class KaggleSubmitter:
 
         Raises:
             RuntimeError: If authentication fails
-        """
-        try:
-            # Retrieve credentials from environment variables
-            kaggle_username = os.getenv("KAGGLE_USER_NAME")
-            kaggle_key = os.getenv("KAGGLE_API_KEY")
+    """
+        kaggle_username = os.getenv("KAGGLE_USER_NAME")
+        kaggle_key = os.getenv("KAGGLE_API_KEY")
 
-            if not kaggle_username or not kaggle_key:
-                raise RuntimeError(
-                    "Kaggle API credentials not found in environment variables")
-
-            logger.info(
-                "Using Kaggle API credentials from environment variables")
-
-            # Create Kaggle API credentials file
-            kaggle_config = {
-                "username": kaggle_username,
-                "key": kaggle_key
-            }
-
-            kaggle_dir = os.path.expanduser("~/.kaggle")
-            os.makedirs(kaggle_dir, exist_ok=True)
-
-            config_path = os.path.join(kaggle_dir, "kaggle.json")
-            with open(config_path, "w") as f:
-                json.dump(kaggle_config, f)
-
-            os.chmod(config_path, 0o600)  # Secure file permissions
-
-            # Authenticate with Kaggle API
-            self.api = KaggleApi()
-            self.api.authenticate()
-            logger.info("Kaggle API authentication successful")
-
-        except Exception as e:
+        if not kaggle_username or not kaggle_key:
             logger.error(f"Kaggle API authentication failed: {e}")
             raise RuntimeError(f"Kaggle API authentication failed: {e}")
+
+        logger.info(
+            "Using Kaggle API credentials from environment variables")
+
+        # Create Kaggle API credentials file
+        kaggle_config = {
+            "username": kaggle_username,
+            "key": kaggle_key
+        }
+
+        kaggle_dir = os.path.expanduser("~/.kaggle")
+        os.makedirs(kaggle_dir, exist_ok=True)
+
+        config_path = os.path.join(kaggle_dir, "kaggle.json")
+        with open(config_path, "w") as f:
+            json.dump(kaggle_config, f)
+
+        os.chmod(config_path, 0o600)  # Secure file permissions
+
+        # Authenticate with Kaggle API
+        self.api = KaggleApi()
+        self.api.authenticate()
+        logger.info("Kaggle API authentication successful")
+            
 
     def submit_to_kaggle(self,
                          file_path: Path,
