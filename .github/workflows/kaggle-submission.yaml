@@ -20,12 +20,17 @@ on:
         default: "surveillance-for-retail-stores"
         required: true
 
+permissions:
+  contents: write  # Ensures workflow can push changes
+
 jobs:
   submit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PAT_TOKEN }}  # Ensure correct token is used
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -52,13 +57,13 @@ jobs:
         env:
           KAGGLE_USERNAME: ${{ secrets.KAGGLE_USER_NAME }}
           KAGGLE_KEY: ${{ secrets.KAGGLE_API_KEY }}
-    
+
       - name: Commit results back to repository
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
 
-          # Add only specific paths we want to keep
+          # Add only specific paths we want to track
           git add submissions/
           git add experiments/
 
@@ -67,5 +72,5 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Add submission results from GitHub Action"
-            git push https://${{ secrets.PAT_TOKEN }}@github.com/InceptionISA/Integration.git
+            git push https://x-access-token:${{ secrets.PAT_TOKEN }}@github.com/InceptionISA/Integration.git || echo "Push failed! Check token permissions."
           fi
