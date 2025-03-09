@@ -1,8 +1,9 @@
 {
-  "experiment_id": "exp_001",
-  "date": "2025-02-25",
-  "tracking_model": "ModelA",
-  "face_reid_model": "ModelX",
-  "public_score": 0.82,
-  "notes": "Baseline experiment with initial hyperparameters."
+    "submission": "submission_file.csv",
+    "public_score": 0.0,
+    "trackfile": "track_file.csv",
+    "facefile": "face_file.csv",
+    "track_model": "track_model_name",
+    "face_model": "face_model_name",
+    "timestamp": "2023-10-01T00:00:00Z"
 }
