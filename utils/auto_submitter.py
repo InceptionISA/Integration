@@ -6,6 +6,7 @@ track and face detection results.
 """
 
 import os
+import sys
 import re
 import pandas as pd
 import json
@@ -296,12 +297,12 @@ class KaggleSubmitter:
         Raises:
             RuntimeError: If authentication fails
     """
-        kaggle_username = os.getenv("KAGGLE_USER_NAME")
-        kaggle_key = os.getenv("KAGGLE_API_KEY")
+        kaggle_username = os.environ.get("KAGGLE_USERNAME")
+        kaggle_key = os.environ.get("KAGGLE_KEY")
 
         if not kaggle_username or not kaggle_key:
-            logger.error(f"Kaggle API authentication failed: {e}")
-            raise RuntimeError(f"Kaggle API authentication failed: {e}")
+            logger.error(f"Kaggle API authentication failed")
+            sys.exit(1)
 
         logger.info(
             "Using Kaggle API credentials from environment variables")
@@ -325,7 +326,6 @@ class KaggleSubmitter:
         self.api = KaggleApi()
         self.api.authenticate()
         logger.info("Kaggle API authentication successful")
-            
 
     def submit_to_kaggle(self,
                          file_path: Path,
