@@ -1,0 +1,71 @@
+name: Kaggle Submission
+
+on:
+  workflow_dispatch:
+    inputs:
+      wait_time:
+        description: "Wait time (seconds) after submission"
+        default: "90"
+        required: true
+      max_retries:
+        description: "Maximum retries for checking score"
+        default: "8"
+        required: true
+      retry_interval:
+        description: "Time between retries (seconds)"
+        default: "15"
+        required: true
+      competition_name:
+        description: "Kaggle competition name"
+        default: "surveillance-for-retail-stores"
+        required: true
+
+jobs:
+  submit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create kaggle.json
+        run: |
+          mkdir -p ~/.kaggle
+          echo "{\"username\":\"$KAGGLE_USER_NAME\",\"key\":\"$KAGGLE_API_KEY\"}" > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
+        env:
+          KAGGLE_USER_NAME: ${{ secrets.KAGGLE_USER_NAME }}
+          KAGGLE_API_KEY: ${{ secrets.KAGGLE_API_KEY }}
+
+      - name: Run submission pipeline
+        run: |
+          python -c "from utils.auto_submitter import run_submission_pipeline; run_submission_pipeline(wait_time=${{ github.event.inputs.wait_time }}, max_retries=${{ github.event.inputs.max_retries }}, retry_interval=${{ github.event.inputs.retry_interval }}, competition_name='${{ github.event.inputs.competition_name }}')"
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USER_NAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_API_KEY }}
+
+      - name: Commit results back to repository
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          # Add only specific paths we want to keep
+          git add submissions/
+          git add experiments/
+
+          # Check if there are any changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add submission results from GitHub Action"
+            git push
+          fi
