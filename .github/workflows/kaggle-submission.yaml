@@ -20,8 +20,6 @@ on:
         default: "surveillance-for-retail-stores"
         required: true
 
-  # Ensures workflow can push changes
-
 jobs:
   submit:
     runs-on: ubuntu-latest
@@ -32,7 +30,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GITHUB_TOKEN }} # Ensure correct token is used
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -44,21 +42,40 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Determine which Kaggle credentials to use based on actor
+      - name: Set Kaggle credentials
+        id: set_kaggle_creds
+        run: |
+          if [ "${{ github.actor }}" == "sayedgamal99" ]; then
+            echo "KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME_SAYED }}" >> $GITHUB_ENV
+            echo "KAGGLE_KEY=${{ secrets.KAGGLE_KEY_SAYED }}" >> $GITHUB_ENV
+          elif [ "${{ github.actor }}" == "youssef-yasser-ali" ]; then
+            echo "KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME_YOUSSEF }}" >> $GITHUB_ENV
+            echo "KAGGLE_KEY=${{ secrets.KAGGLE_KEY_YOUSSEF }}" >> $GITHUB_ENV
+          elif [ "${{ github.actor }}" == "A7medElsharkawy" ]; then
+            echo "KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME_SHARK }}" >> $GITHUB_ENV
+            echo "KAGGLE_KEY=${{ secrets.KAGGLE_KEY_SHARK }}" >> $GITHUB_ENV
+          else
+            # Default or fallback credentials
+            echo "KAGGLE_USERNAME=${{ secrets.KAGGLE_USER_NAME }}" >> $GITHUB_ENV
+            echo "KAGGLE_KEY=${{ secrets.KAGGLE_API_KEY }}" >> $GITHUB_ENV
+          fi
+
       - name: Create kaggle.json
         run: |
           mkdir -p ~/.kaggle
-          echo "{\"username\":\"$KAGGLE_USER_NAME\",\"key\":\"$KAGGLE_API_KEY\"}" > ~/.kaggle/kaggle.json
+          echo "{\"username\":\"$KAGGLE_USERNAME\",\"key\":\"$KAGGLE_KEY\"}" > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-        env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USER_NAME }}
-          KAGGLE_KEY: ${{ secrets.KAGGLE_API_KEY }}
 
       - name: Run submission pipeline
         run: |
-          python -c "from utils.auto_submitter import run_submission_pipeline; run_submission_pipeline(wait_time=${{ github.event.inputs.wait_time }}, max_retries=${{ github.event.inputs.max_retries }}, retry_interval=${{ github.event.inputs.retry_interval }}, competition_name='${{ github.event.inputs.competition_name }}')"
-        env:
-          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USER_NAME }}
-          KAGGLE_KEY: ${{ secrets.KAGGLE_API_KEY }}
+          python -c "from utils.auto_submitter import run_submission_pipeline; run_submission_pipeline(
+            wait_time=${{ github.event.inputs.wait_time }}, 
+            max_retries=${{ github.event.inputs.max_retries }}, 
+            retry_interval=${{ github.event.inputs.retry_interval }}, 
+            competition_name='${{ github.event.inputs.competition_name }}',
+            submitted_by='${{ github.actor }}'
+          )"
 
       - name: Pull latest changes
         run: |
@@ -67,8 +84,8 @@ jobs:
       - name: Commit results back to repository
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Add submission results from GitHub Action"
+          commit_message: "Add submission results from GitHub Action (by ${{ github.actor }})"
           file_pattern: "submissions/ experiments/"
-          branch: main # Change this if your default branch is different
+          branch: main
           commit_user_name: "GitHub Action"
           commit_user_email: "action@github.com"
