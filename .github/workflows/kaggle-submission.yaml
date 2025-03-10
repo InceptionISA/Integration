@@ -19,6 +19,12 @@ on:
         description: "Kaggle competition name"
         default: "surveillance-for-retail-stores"
         required: true
+      track_file:
+        description: "Track file name (leave empty for latest)"
+        required: false
+      face_file:
+        description: "Face file name (leave empty for latest)"
+        required: false
 
 jobs:
   submit:
@@ -74,7 +80,9 @@ jobs:
             max_retries=${{ github.event.inputs.max_retries }}, 
             retry_interval=${{ github.event.inputs.retry_interval }}, 
             competition_name='${{ github.event.inputs.competition_name }}',
-            submitted_by='${{ github.actor }}'
+            submitted_by='${{ github.actor }}',
+            track_file='${{ github.event.inputs.track_file }}',
+            face_file='${{ github.event.inputs.face_file }}'
           )"
 
       - name: Pull latest changes

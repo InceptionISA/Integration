@@ -87,6 +87,30 @@ class SubmissionManager:
             logger.error(f"Error accessing directory {directory}: {e}")
             raise
 
+    def get_specific_submission(self, directory: Path, filename: str) -> SubmissionMetadata:
+        pattern = re.compile(r'^submission_(\d+)_(.*?)\.csv$')
+
+        try:
+            file_path = directory / filename
+            if not file_path.exists() or not file_path.is_file():
+                logger.error(f"File {filename} not found in {directory}")
+                sys.exit(1)
+
+            match = pattern.match(filename)
+            if match:
+                i = int(match.group(1))
+                model = match.group(2)
+                return SubmissionMetadata(i, model, file_path)
+            else:
+                # For files that don't match the pattern, use default values
+                logger.warning(
+                    f"File {filename} doesn't match the expected pattern")
+                return SubmissionMetadata(0, "custom", file_path)
+
+        except (PermissionError) as e:
+            logger.error(f"Error accessing file {filename} in {directory}: {e}")
+            sys.exit(1)
+
     def get_next_submission_number(self, directory: Path) -> int:
         """
         Determine the next submission number with zero-padding.
@@ -230,11 +254,11 @@ class ExperimentManager:
             return 0
 
     def save_experiment_record(self,
-                                submission_path: Path,
-                                track_metadata: SubmissionMetadata,
-                                face_metadata: SubmissionMetadata,
-                                public_score: Optional[float] = None,
-                                submitted_by: str = "automated") -> Path:
+                               submission_path: Path,
+                               track_metadata: SubmissionMetadata,
+                               face_metadata: SubmissionMetadata,
+                               public_score: Optional[float] = None,
+                               submitted_by: str = "automated") -> Path:
         """
         Create and save an experiment record.
 
@@ -414,7 +438,9 @@ def run_submission_pipeline(
     wait_time: int = 90,
     max_retries: int = 8,
     retry_interval: int = 15,
-    submitted_by: str = "automated"  # New parameter
+    submitted_by: str = "automated",
+    track_file: str = "",
+    face_file: str = ""
 ) -> Dict[str, Any]:
     """
     Run the complete submission pipeline.
@@ -427,6 +453,8 @@ def run_submission_pipeline(
         max_retries: Maximum number of retry attempts for checking score
         retry_interval: Time between retry attempts
         submitted_by: GitHub username of the person who triggered the action
+        track_file: Optional specific track file name to use
+        face_file: Optional specific face file name to use
 
     Returns:
         Dictionary with pipeline results (paths, metadata, score)
@@ -448,17 +476,33 @@ def run_submission_pipeline(
         kaggle_submitter.authenticate(kaggle_config_path)
         results['authentication'] = "success"
 
-        # Step 2: Get latest track and face submissions
-        logger.info("Step 2: Finding latest submissions")
-        track_metadata = submission_mgr.get_latest_submission(
-            config.get_path('track'))
-        face_metadata = submission_mgr.get_latest_submission(
-            config.get_path('face'))
+        # Step 2: Get track and face submissions (either specified or latest)
+        logger.info("Step 2: Finding submissions")
+
+        # Get track submission (specific or latest)
+        if track_file and track_file.strip():
+            logger.info(f"Using specified track file: {track_file}")
+            track_metadata = submission_mgr.get_specific_submission(
+                config.get_path('track'), track_file)
+        else:
+            logger.info("Using latest track submission")
+            track_metadata = submission_mgr.get_latest_submission(
+                config.get_path('track'))
+
+        # Get face submission (specific or latest)
+        if face_file and face_file.strip():
+            logger.info(f"Using specified face file: {face_file}")
+            face_metadata = submission_mgr.get_specific_submission(
+                config.get_path('face'), face_file)
+        else:
+            logger.info("Using latest face submission")
+            face_metadata = submission_mgr.get_latest_submission(
+                config.get_path('face'))
 
         logger.info(
-            f"Latest track submission: {track_metadata.file_path.name} (model: {track_metadata.model_name})")
+            f"Track submission: {track_metadata.file_path.name} (model: {track_metadata.model_name})")
         logger.info(
-            f"Latest face submission: {face_metadata.file_path.name} (model: {face_metadata.model_name})")
+            f"Face submission: {face_metadata.file_path.name} (model: {face_metadata.model_name})")
 
         results['track_metadata'] = {
             'index': track_metadata.index,
@@ -504,7 +548,7 @@ def run_submission_pipeline(
             track_metadata,
             face_metadata,
             public_score,
-            submitted_by  # Pass the submitter info to the experiment record
+            submitted_by
         )
         results['experiment_path'] = str(exp_path)
 
