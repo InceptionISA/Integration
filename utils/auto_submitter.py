@@ -230,10 +230,11 @@ class ExperimentManager:
             return 0
 
     def save_experiment_record(self,
-                               submission_path: Path,
-                               track_metadata: SubmissionMetadata,
-                               face_metadata: SubmissionMetadata,
-                               public_score: Optional[float] = None) -> Path:
+                                submission_path: Path,
+                                track_metadata: SubmissionMetadata,
+                                face_metadata: SubmissionMetadata,
+                                public_score: Optional[float] = None,
+                                submitted_by: str = "automated") -> Path:
         """
         Create and save an experiment record.
 
@@ -242,6 +243,7 @@ class ExperimentManager:
             track_metadata: Metadata for the track submission
             face_metadata: Metadata for the face submission
             public_score: Public score from Kaggle, if available
+            submitted_by: GitHub username of the person who triggered the action
 
         Returns:
             Path to the saved experiment record
@@ -259,6 +261,7 @@ class ExperimentManager:
             "facefile": str(face_metadata.file_path),
             "track_model": track_metadata.model_name,
             "face_model": face_metadata.model_name,
+            "submitted_by": submitted_by,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
@@ -296,7 +299,7 @@ class KaggleSubmitter:
 
         Raises:
             RuntimeError: If authentication fails
-    """
+        """
         kaggle_username = os.environ.get("KAGGLE_USERNAME")
         kaggle_key = os.environ.get("KAGGLE_KEY")
 
@@ -410,7 +413,8 @@ def run_submission_pipeline(
     kaggle_config_path: Optional[str] = None,
     wait_time: int = 90,
     max_retries: int = 8,
-    retry_interval: int = 15
+    retry_interval: int = 15,
+    submitted_by: str = "automated"  # New parameter
 ) -> Dict[str, Any]:
     """
     Run the complete submission pipeline.
@@ -422,6 +426,7 @@ def run_submission_pipeline(
         wait_time: Time to wait after submission before checking score
         max_retries: Maximum number of retry attempts for checking score
         retry_interval: Time between retry attempts
+        submitted_by: GitHub username of the person who triggered the action
 
     Returns:
         Dictionary with pipeline results (paths, metadata, score)
@@ -480,7 +485,7 @@ def run_submission_pipeline(
 
         # Step 5: Submit to Kaggle
         logger.info("Step 5: Submitting to Kaggle")
-        message = f"Merged Track ({track_metadata.model_name}) and Face ({face_metadata.model_name})"
+        message = f"Merged Track ({track_metadata.model_name}) and Face ({face_metadata.model_name}) - Submitted by {submitted_by}"
         public_score = kaggle_submitter.submit_to_kaggle(
             output_path,
             message,
@@ -490,6 +495,7 @@ def run_submission_pipeline(
         )
         results['submission'] = "success"
         results['public_score'] = public_score
+        results['submitted_by'] = submitted_by
 
         # Step 6: Save experiment record
         logger.info("Step 6: Saving experiment record")
@@ -497,7 +503,8 @@ def run_submission_pipeline(
             output_path,
             track_metadata,
             face_metadata,
-            public_score
+            public_score,
+            submitted_by  # Pass the submitter info to the experiment record
         )
         results['experiment_path'] = str(exp_path)
 
