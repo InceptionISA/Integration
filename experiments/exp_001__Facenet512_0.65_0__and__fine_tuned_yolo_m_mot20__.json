@@ -1,0 +1,9 @@
+{
+  "submission": "submissions/submission_16.csv",
+  "public_score": 0.6814,
+  "trackfile": "submissions/Track/submission_5_fine_tuned_yolo_m_mot20.csv",
+  "facefile": "submissions/Face/submission_2_Facenet512_0.65_0.csv",
+  "track_model": "fine_tuned_yolo_m_mot20",
+  "face_model": "Facenet512_0.65_0",
+  "timestamp": "2025-03-10 05:38:31"
+}
