@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_18.csv",
+  "public_score": 0.28042,
+  "trackfile": "submissions/Track/submission_3__byte_track_yolo8n_y.csv",
+  "facefile": "submissions/Face/submission_2_Facenet512_0.65_0.csv",
+  "track_model": "_byte_track_yolo8n_y",
+  "face_model": "Facenet512_0.65_0",
+  "submitted_by": "sayedgamal99",
+  "timestamp": "2025-03-10 07:38:23"
+}
