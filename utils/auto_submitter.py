@@ -571,6 +571,7 @@ if __name__ == "__main__":
 
     if 'error' in results:
         print(f"Error: {results['error']}")
+        sys.exit(1)
     else:
         print(f"Track model: {results['track_metadata']['model']}")
         print(f"Face model: {results['face_metadata']['model']}")
