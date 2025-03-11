@@ -32,11 +32,13 @@ jobs:
 
     permissions:
       contents: write
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  # Fetch all history for better handling of commits
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -67,6 +69,14 @@ jobs:
             echo "KAGGLE_KEY=${{ secrets.KAGGLE_API_KEY }}" >> $GITHUB_ENV
           fi
 
+      - name: Validate Kaggle credentials
+        run: |
+          if [ -z "$KAGGLE_USERNAME" ] || [ -z "$KAGGLE_KEY" ]; then
+            echo "ERROR: Kaggle credentials are not properly set"
+            exit 1
+          fi
+          echo "Kaggle credentials for user $KAGGLE_USERNAME are set"
+
       - name: Create kaggle.json
         run: |
           mkdir -p ~/.kaggle
@@ -74,7 +84,9 @@ jobs:
           chmod 600 ~/.kaggle/kaggle.json
 
       - name: Run submission pipeline
+        id: submission
         run: |
+          # The script will now exit with an error code if any part fails
           python -c "from utils.auto_submitter import run_submission_pipeline; run_submission_pipeline(
             wait_time=${{ github.event.inputs.wait_time }}, 
             max_retries=${{ github.event.inputs.max_retries }}, 
@@ -86,10 +98,14 @@ jobs:
           )"
 
       - name: Pull latest changes
+        if: success()  # Only run if previous steps succeeded
         run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
           git pull --rebase origin main || echo "Pull failed, continuing with push"
 
       - name: Commit results back to repository
+        if: success()  # Only run if previous steps succeeded
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Add submission results from GitHub Action (by ${{ github.actor }})"

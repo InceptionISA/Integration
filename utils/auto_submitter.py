@@ -88,13 +88,27 @@ class SubmissionManager:
             raise
 
     def get_specific_submission(self, directory: Path, filename: str) -> SubmissionMetadata:
+        """
+        Find a specific submission file by name.
+
+        Args:
+            directory: Directory containing the submission file
+            filename: Name of the submission file
+
+        Returns:
+            SubmissionMetadata object with information about the submission
+
+        Raises:
+            FileNotFoundError: If the file doesn't exist
+            ValueError: If the file doesn't match the expected pattern
+        """
         pattern = re.compile(r'^submission_(\d+)_(.*?)\.csv$')
 
         try:
             file_path = directory / filename
             if not file_path.exists() or not file_path.is_file():
-                logger.error(f"File {filename} not found in {directory}")
-                sys.exit(1)
+                raise FileNotFoundError(
+                    f"File {filename} not found in {directory}")
 
             match = pattern.match(filename)
             if match:
@@ -108,8 +122,9 @@ class SubmissionManager:
                 return SubmissionMetadata(0, "custom", file_path)
 
         except (PermissionError) as e:
-            logger.error(f"Error accessing file {filename} in {directory}: {e}")
-            sys.exit(1)
+            logger.error(
+                f"Error accessing file {filename} in {directory}: {e}")
+            raise
 
     def get_next_submission_number(self, directory: Path) -> int:
         """
@@ -328,11 +343,11 @@ class KaggleSubmitter:
         kaggle_key = os.environ.get("KAGGLE_KEY")
 
         if not kaggle_username or not kaggle_key:
-            logger.error(f"Kaggle API authentication failed")
-            sys.exit(1)
+            error_msg = "Kaggle API credentials not found in environment variables"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
-        logger.info(
-            "Using Kaggle API credentials from environment variables")
+        logger.info("Using Kaggle API credentials from environment variables")
 
         # Create Kaggle API credentials file
         kaggle_config = {
@@ -350,9 +365,14 @@ class KaggleSubmitter:
         os.chmod(config_path, 0o600)  # Secure file permissions
 
         # Authenticate with Kaggle API
-        self.api = KaggleApi()
-        self.api.authenticate()
-        logger.info("Kaggle API authentication successful")
+        try:
+            self.api = KaggleApi()
+            self.api.authenticate()
+            logger.info("Kaggle API authentication successful")
+        except Exception as e:
+            error_msg = f"Kaggle API authentication failed: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
     def submit_to_kaggle(self,
                          file_path: Path,
@@ -414,6 +434,10 @@ class KaggleSubmitter:
                         public_score = float(latest.publicScore)
                         logger.info(f"Public score: {public_score}")
                         break
+                    elif latest.status == 'failed':
+                        error_msg = f"Submission failed on Kaggle: {latest.errorDescription}"
+                        logger.error(error_msg)
+                        raise RuntimeError(error_msg)
                     else:
                         logger.info(f"Submission status: {latest.status}")
 
@@ -424,11 +448,17 @@ class KaggleSubmitter:
                         f"Error checking score (attempt {attempt+1}): {e}")
                     time.sleep(retry_interval)
 
+            # If we've exhausted all retries and still don't have a score
+            if public_score is None and max_retries > 0:
+                logger.warning(
+                    "Could not retrieve public score after maximum retries")
+
             return public_score
 
         except Exception as e:
-            logger.error(f"Submission failed: {e}")
-            raise RuntimeError(f"Kaggle submission failed: {e}")
+            error_msg = f"Kaggle submission failed: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
 
 def run_submission_pipeline(
@@ -559,20 +589,17 @@ def run_submission_pipeline(
     except Exception as e:
         logger.error(f"Submission pipeline failed: {e}")
         results['error'] = str(e)
-        return results
+        # Re-raise the exception to ensure the script exits with an error code
+        raise
 
 
 if __name__ == "__main__":
-    # Run the pipeline with default settings
-    results = run_submission_pipeline()
+    try:
+        # Run the pipeline with default settings
+        results = run_submission_pipeline()
 
-    # Print summary
-    print("\nSubmission Summary:")
-
-    if 'error' in results:
-        print(f"Error: {results['error']}")
-        sys.exit(1)
-    else:
+        # Print summary
+        print("\nSubmission Summary:")
         print(f"Track model: {results['track_metadata']['model']}")
         print(f"Face model: {results['face_metadata']['model']}")
         print(f"Output file: {results['output_path']}")
@@ -582,3 +609,7 @@ if __name__ == "__main__":
             print(f"Public score: {results['public_score']}")
         else:
             print("Public score: Not available")
+
+    except Exception as e:
+        print(f"ERROR: {str(e)}")
+        sys.exit(1)  # Exit with error code to ensure GitHub Action fails
