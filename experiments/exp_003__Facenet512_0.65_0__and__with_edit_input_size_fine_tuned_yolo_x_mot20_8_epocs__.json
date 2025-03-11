@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_20.csv",
+  "public_score": 0.67854,
+  "trackfile": "submissions/Track/submission_6_with_edit_input_size_fine_tuned_yolo_x_mot20_8_epocs.csv",
+  "facefile": "submissions/Face/submission_2_Facenet512_0.65_0.csv",
+  "track_model": "with_edit_input_size_fine_tuned_yolo_x_mot20_8_epocs",
+  "face_model": "Facenet512_0.65_0",
+  "submitted_by": "A7medElsharkawy",
+  "timestamp": "2025-03-11 04:21:19"
+}
