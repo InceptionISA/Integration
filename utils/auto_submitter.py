@@ -174,6 +174,7 @@ class SubmissionManager:
             # Read input files
             track_df = pd.read_csv(track_path)
             face_df = pd.read_csv(face_path)
+            track_df.columns = track_df.columns.str.lower()
 
             # Validate dataframes
             required_columns = ['frame', 'objects', 'objective']
