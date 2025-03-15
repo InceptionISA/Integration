@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_31.csv",
+  "public_score": null,
+  "trackfile": "submissions/Track/submission_8_bottrack_interface_with_bytetrack_model.csv",
+  "facefile": "submissions/Face/submission_3_Facenet512_0.65_0.csv",
+  "track_model": "bottrack_interface_with_bytetrack_model",
+  "face_model": "Facenet512_0.65_0",
+  "submitted_by": "sayedgamal99",
+  "timestamp": "2025-03-15 20:53:56"
+}
