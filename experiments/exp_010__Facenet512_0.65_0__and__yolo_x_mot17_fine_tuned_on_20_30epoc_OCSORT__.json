@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_27.csv",
+  "public_score": null,
+  "trackfile": "submissions/Track/submission_13_yolo_x_mot17_fine_tuned_on_20_30epoc_OCSORT.csv",
+  "facefile": "submissions/Face/submission_2_Facenet512_0.65_0.csv",
+  "track_model": "yolo_x_mot17_fine_tuned_on_20_30epoc_OCSORT",
+  "face_model": "Facenet512_0.65_0",
+  "submitted_by": "youssef-yasser-ali",
+  "timestamp": "2025-03-15 15:32:43"
+}
