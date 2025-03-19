@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_34.csv",
+  "public_score": null,
+  "trackfile": "submissions/Track/submission_19_bot track + post gbi with the best model we have ( mot17 fine_tunned_on_20).csv",
+  "facefile": "submissions/Face/submission_4_ArcFace_0.65_0.csv",
+  "track_model": "bot track + post gbi with the best model we have ( mot17 fine_tunned_on_20)",
+  "face_model": "ArcFace_0.65_0",
+  "submitted_by": "A7medElsharkawy",
+  "timestamp": "2025-03-19 00:05:07"
+}
