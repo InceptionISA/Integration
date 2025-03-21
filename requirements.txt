@@ -1,2 +1,2 @@
-pandas
-kaggle
+pandas==2.2.3
+kaggle==1.7.4.2

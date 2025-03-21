@@ -17,6 +17,7 @@ from typing import Tuple, Dict, Optional, List, Any
 from dataclasses import dataclass
 from kaggle.api.kaggle_api_extended import KaggleApi
 from utils.configuration import ConfigManager
+from kagglesdk.competitions.types.submission_status import SubmissionStatus
 
 # Configure logging
 logging.basicConfig(
@@ -346,7 +347,7 @@ class KaggleSubmitter:
         if not kaggle_username or not kaggle_key:
             error_msg = "Kaggle API credentials not found in environment variables"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            sys.exit(1)
 
         logger.info("Using Kaggle API credentials from environment variables")
 
@@ -373,7 +374,7 @@ class KaggleSubmitter:
         except Exception as e:
             error_msg = f"Kaggle API authentication failed: {e}"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            sys.exit(1)
 
     def submit_to_kaggle(self,
                          file_path: Path,
@@ -431,14 +432,14 @@ class KaggleSubmitter:
 
                     latest = submissions[0]
 
-                    if latest.status == 'complete':
-                        public_score = float(latest.publicScore)
+                    if latest.status == SubmissionStatus.COMPLETE:
+                        public_score = float(latest.public_score)
                         logger.info(f"Public score: {public_score}")
                         break
-                    elif latest.status == 'failed':
+                    elif latest.status == SubmissionStatus.ERROR:
                         error_msg = f"Submission failed on Kaggle: {latest.errorDescription}"
                         logger.error(error_msg)
-                        raise RuntimeError(error_msg)
+                        sys.exit(1)
                     else:
                         logger.info(f"Submission status: {latest.status}")
 
@@ -459,7 +460,7 @@ class KaggleSubmitter:
         except Exception as e:
             error_msg = f"Kaggle submission failed: {e}"
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            sys.exit(1)
 
 
 def run_submission_pipeline(
