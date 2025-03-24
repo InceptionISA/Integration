@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_53.csv",
+  "public_score": 0.76163,
+  "trackfile": "submissions/Track/submission_34_BoostTrackPlus_post_gbi_youssef_model_v2_float_last_ckpt(800, 1440).csv",
+  "facefile": "submissions/Face/submission_6_Facenet512_0.65_avg_mtcnn.csv",
+  "track_model": "BoostTrackPlus_post_gbi_youssef_model_v2_float_last_ckpt(800, 1440)",
+  "face_model": "Facenet512_0.65_avg_mtcnn",
+  "submitted_by": "sayedgamal99",
+  "timestamp": "2025-03-24 17:39:23"
+}
