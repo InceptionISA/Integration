@@ -1,0 +1,10 @@
+{
+  "submission": "submissions/submission_51.csv",
+  "public_score": 0.74989,
+  "trackfile": "submissions/Track/submission_33_BoostTrackPlus_post_gbi_youssef_model_v2_float_last_ckpt.csv",
+  "facefile": "submissions/Face/submission_6_Facenet512_0.65_avg_mtcnn.csv",
+  "track_model": "BoostTrackPlus_post_gbi_youssef_model_v2_float_last_ckpt",
+  "face_model": "Facenet512_0.65_avg_mtcnn",
+  "submitted_by": "youssef-yasser-ali",
+  "timestamp": "2025-03-24 07:54:30"
+}
